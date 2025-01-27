@@ -1,0 +1,35 @@
+<html>
+
+<head>
+	<title>Bias Sorter</title>
+	<link rel="stylesheet" href="static/pico.min.css">
+	<link rel="stylesheet" href="static/style.css">
+</head>
+
+<body>
+	<header class=container>
+		<h1>Bias Sorter</h1>
+	</header>
+
+	<nav class=container>
+		<ul>
+			<li>Create Quiz</li>
+			<li>View Quizes</li>
+		</ul>
+	</nav>
+
+	<main class=container>
+		{{range .}}
+		<article class=container>
+			<h2>{{.Title}}</h2>
+			<p>{{.Desc}}</p>
+		</article>
+		{{end}}
+	</main>
+
+	<footer class=container>
+		<p>Copyright 2025 PiNines</p>
+	</footer>
+</body>
+
+</html>

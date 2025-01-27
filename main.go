@@ -8,23 +8,24 @@ import (
 
 func main() {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", test)
-	mux.HandleFunc("/test", index)
+	mux.HandleFunc("/", index)
 
 	log.Println("Server listening on port: 8080")
 	http.ListenAndServe(":8080", mux)
 	log.Println("done")
 }
 
-func test(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("test"))
-	log.Println("hit handler")
-}
-
 func index(w http.ResponseWriter, r *http.Request) {
-	t, err := template.New("index.html").ParseFiles("index.html")
+	t, err := template.ParseFiles("./templates/index.html")
 	if err != nil {
 		log.Fatal("template error")
 	}
-	err = t.Execute(w, "test")
+
+	type testArt struct {
+		Title string
+		Desc  string
+	}
+
+	articals := []testArt{{"title", "This is a longer description"}}
+	err = t.Execute(w, articals)
 }
