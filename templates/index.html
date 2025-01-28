@@ -19,10 +19,22 @@
 	</nav>
 
 	<main class=container>
+
+		<form action="post">
+			<label>Title</label>
+			<input type="text">
+			<br>
+			<label>Description</label>
+			<textarea></textarea>
+			</br>
+			<input type="submit" value="Submit">
+
+		</form>
+
 		{{range .}}
 		<article class=container>
 			<h2>{{.Title}}</h2>
-			<p>{{.Desc}}</p>
+			<p>{{.Description}}</p>
 		</article>
 		{{end}}
 	</main>
