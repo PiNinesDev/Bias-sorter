@@ -4,6 +4,10 @@
 	<title>Bias Sorter</title>
 	<link rel="stylesheet" href="static/pico.min.css">
 	<link rel="stylesheet" href="static/style.css">
+	<script src="https://unpkg.com/htmx.org@2.0.4"
+		integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
+		crossorigin="anonymous"></script>
+
 </head>
 
 <body>
@@ -20,22 +24,27 @@
 
 	<main class=container>
 
-		<form action="post">
+		<form hx-boost="true" hx-patch="/add-quiz" hx-target="#quizList" action="/add-quiz" method="post">
 			<label>Title</label>
-			<input type="text">
+			<input type="text" name="title">
 			<br>
 			<label>Description</label>
-			<textarea></textarea>
+			<textarea name="description"></textarea>
 			</br>
 			<input type="submit" value="Submit">
 
 		</form>
 
-		{{range .}}
-		<article class=container>
-			<h2>{{.Title}}</h2>
-			<p>{{.Description}}</p>
-		</article>
+		<h2>Quizes</h2>
+		<div id="quizList">
+			{{block "quizes" .}}
+			{{range .}}
+			<article class=container>
+				<h2>{{.Title}}</h2>
+				<p>{{.Description}}</p>
+			</article>
+			{{end}}
+		</div>
 		{{end}}
 	</main>
 
