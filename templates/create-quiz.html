@@ -25,12 +25,12 @@
 	<main class=container>
 
 		<h2>Create Quiz</h2>
-		{{template "createQuizName" .}}
-
-		{{template "createQuizAddEntry" .}}
-
-		{{template "createQuizListOfEntries" .}}
-
+		<form hx-boost="ture" action="/add-quiz" method="post">
+			{{template "createQuizNameAndDescription" .}}
+			{{template "createQuizAddEntry" .}}
+			<hr>
+			{{template "createQuizListOfEntries" .}}
+		</form>
 	</main>
 
 	<footer class=container>

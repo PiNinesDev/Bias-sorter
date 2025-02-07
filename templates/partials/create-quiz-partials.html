@@ -1,27 +1,25 @@
-{{define "createQuizName" }}
-<form xh-boost="true" action="/add-quiz" method="post">
-	<label>Name</label>
-	<input type="text"></input>
-	<label>Description</label>
-	<input type="text"></input>
-	<input value="Create Quiz" type="submit"></input>
-</form>
+{{define "createQuizNameAndDescription" }}
+<label>Name</label>
+<input name="QuizName" type="text"></input>
+<label>Description</label>
+<input name="QuizDesc" type="text"></input>
+<input value="Create Quiz" type="submit"></input>
 {{end}}
 
 {{define "createQuizAddEntry"}}
 <label> Add an Entry </label>
 <Fieldset role="group">
 	<input name="new-entry" type="text"></input>
-	<button hx-post="/add-entry" hx-swap="afterbegin" hx-target="#list-of-entries"
+	<button hx-patch="/add-entry" hx-swap="afterbegin" hx-target="#list-of-entries"
 		hx-include="[name='new-entry']">+</button>
 </Fieldset>
 {{end}}
 
 {{define "createQuizEntry"}}
-<article role="group">
-	<input value="{{.}}" disabled></input>
-	<button>X</button>
-</article>
+<fieldset hx-target="this" role="group">
+	<input name="entries" value="{{.}}" readonly></input>
+	<button hx-delete="/clear" hx-swap="outerHTML">X</button>
+</fieldset>
 {{end}}
 
 {{define "createQuizListOfEntries" }}
