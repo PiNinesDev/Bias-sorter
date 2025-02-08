@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto"
 	"database/sql"
 	"html/template"
 	"log"
@@ -12,6 +11,7 @@ import (
 )
 
 type Quiz struct {
+	Id          string
 	Title       string
 	Description string
 	Entries     []string
@@ -21,7 +21,6 @@ func main() {
 	db := initDB()
 	defer db.Close()
 
-	quizes := []Quiz{{"Best Super Smash Ultamite", "This quiz will rank all the fighters in Super Smash Ultamite", nil}}
 	mux := http.NewServeMux()
 
 	// set up static files
@@ -29,14 +28,54 @@ func main() {
 	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 
 	// set up routes
-	mux.HandleFunc("/home", makeIndexHandler(&quizes))
-	mux.HandleFunc("/create-quiz", makeAddQuizHandler(&quizes))
-	mux.HandleFunc("/add-entry", makeCreateQuizeAddEntry(&quizes))
+	mux.HandleFunc("/home", makeAddQuizHandler())
+	mux.HandleFunc("/create-quiz", makeAddQuizHandler())
+	mux.HandleFunc("/view-quizzes", makeViewQuizesHandler(db))
+	mux.HandleFunc("/add-entry", makeCreateQuizeAddEntry())
 	mux.HandleFunc("/clear", func(w http.ResponseWriter, r *http.Request) {})
 	mux.HandleFunc("/add-quiz", makeCreateQuiz(db))
 
 	log.Println("Server listening on port: 8080")
 	http.ListenAndServe(":8080", mux)
+}
+
+func makeViewQuizesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		quizzes := getQuizzes(db)
+
+		t, err := template.ParseFiles("./templates/list-quizzes.html", "./templates/partials/view-quizzes-partials.html")
+		if err != nil {
+			log.Fatal("template error %v", err)
+		}
+
+		err = t.Execute(w, quizzes)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+	}
+}
+
+func getQuizzes(db *sql.DB) []Quiz {
+	getQuizzes := `	SELECT id, title, description FROM quizzes `
+	rows, err := db.Query(getQuizzes)
+	if err != nil {
+		log.Println(err)
+	}
+	defer rows.Close()
+	var Quizzes []Quiz
+	for rows.Next() {
+		var id string
+		var title string
+		var description string
+		err = rows.Scan(&id, &title, &description)
+		if err != nil {
+			log.Println(err)
+		}
+		Quizzes = append(Quizzes, Quiz{id, title, description, nil})
+	}
+	return Quizzes
 }
 
 func initDB() *sql.DB {
@@ -82,28 +121,16 @@ func makeCreateQuiz(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-// TODO: replace q with database handler
-func makeIndexHandler(q *[]Quiz) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		t, err := template.ParseFiles("./templates/index.html")
-		if err != nil {
-			log.Fatal("template error")
-		}
-
-		err = t.Execute(w, q)
-	}
-}
-
 // TODO: replace q with database handler and ad logic to choose the index via
 // uri
-func makeAddQuizHandler(q *[]Quiz) http.HandlerFunc {
+func makeAddQuizHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// handle input
 		t, err := template.ParseFiles("./templates/create-quiz.html", "./templates/partials/create-quiz-partials.html")
 		if err != nil {
 			log.Fatalf("template error: %v", err)
 		}
-		err = t.Execute(w, *q)
+		err = t.Execute(w, nil)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -112,7 +139,7 @@ func makeAddQuizHandler(q *[]Quiz) http.HandlerFunc {
 	}
 }
 
-func makeCreateQuizeAddEntry(q *[]Quiz) http.HandlerFunc {
+func makeCreateQuizeAddEntry() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		newEntry := r.FormValue("new-entry")
