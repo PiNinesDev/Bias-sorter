@@ -2,8 +2,10 @@
 
 <head>
 	<title>Bias Sorter</title>
+	<!--
 	<link rel="stylesheet" href="static/pico.min.css">
 	<link rel="stylesheet" href="static/style.css">
+	-->
 	<script src="https://unpkg.com/htmx.org@2.0.4"
 		integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
 		crossorigin="anonymous"></script>
@@ -11,25 +13,47 @@
 </head>
 
 <body>
-	<header class=container>
+	<header>
 		<h1>Bias Sorter</h1>
 	</header>
 
-	<nav class=container>
-		<ul>
-			<li>Create Quiz</li>
-			<li>View Quizes</li>
-		</ul>
-	</nav>
-
-	<main class=container>
-
+	<main>
 		<h2>Quizzes</h2>
+		<ul>
+			{{ range . }}
+			<li>{{ .Name }}
+				<form style="display: inline" method="delete" action="/delete-quiz/{{ .ID }}">
+					<input type="submit" value="X">
+				</form>
+				<form style="display: inline" method="post" action="/add-entry/{{ .ID }}">
+					<input type="text" name="entry-name">
+					<input type="submit" value="+">
+				</form>
 
-		{{ template "viewQuizzesListQuizzes" .}}
+				<ul>
+					{{ range .Entries }}
+					<li>
+						{{ .Name }}
+
+						<form style="display: inline" method="delete"
+							action="/delete-entry/{{ .ID }}">
+							<input type="submit" value="X">
+						</form>
+					</li>
+					{{ end }}
+				</ul>
+			</li>
+			{{ end }}
+		</ul>
+		<form method="post" action="/add-quiz">
+			<label for="quiz-name">Name: </label>
+			<input type="text" name="quiz-name">
+			<input type="submit" value="Add Quiz">
+		</form>
 	</main>
 
-	<footer class=container>
+
+	<footer>
 		<p>Copyright 2025 PiNines</p>
 	</footer>
 </body>

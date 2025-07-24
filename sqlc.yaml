@@ -5,6 +5,6 @@ sql:
     queries: "query.sql"
     gen:
       go: 
-        package: "repository"
-        out: "internal/repostitory"
+        package: "db"
+        out: "db"
 

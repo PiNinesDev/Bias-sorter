@@ -3,6 +3,8 @@ package main
 import (
 	"database/sql"
 	"net/http"
+
+	"example.com/bias-sorter/db"
 )
 
 type Server struct {
@@ -10,12 +12,19 @@ type Server struct {
 	Router *Router
 }
 
-func newServer() *Server {
+type Quiz struct {
+	ID      int64
+	Name    string
+	Entries []db.Entry
+}
+
+func newServer(db *sql.DB) *Server {
 	s := &Server{}
-	s.Router = &Router{}
+
+	s.Router = newRouter(db, "static")
 	return s
 }
 
-func (s *Server) ServerHTTP(w http.ResponseWriter, r *http.Request) {
-	s.Router.ServerHTTP(w, r)
+func (s *Server) Start() {
+	http.ListenAndServe(":8080", &s.Router.Mux)
 }

@@ -1,0 +1,6 @@
+# goose.yaml
+driver: sqlite3
+open: test.db
+dir: ./migrations
+
+
