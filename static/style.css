@@ -1,0 +1,55 @@
+nav {
+  display: grid;
+  padding: 1rem;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  background-color: coral;
+
+  ul {
+    display: flex;
+    justify-content: left;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  form {
+    display: flex;
+    justify-content: right;
+  }
+}
+
+main {
+  background-color: cornflowerblue;
+  display: grid;
+}
+
+#main-quiz-container {
+  display: flex;
+  flex-grow: 1;
+  flex-wrap: wrap;
+}
+
+article {
+  text-align: center;
+  width: clamp(30ch, 50%, 50ch);
+  padding: 0;
+  overflow: hidden;
+  margin: 1rem;
+  box-shadow: 1px 0px 20px 2px rgba(0, 0, 0, 0.5);
+  border-radius: 1ch;
+  background-color: darkslategrey;
+
+  image {
+    object-fit: contain;
+    width: 100%;
+
+  }
+
+}
+
+
+
+footer {
+  background-color: cornsilk;
+}
