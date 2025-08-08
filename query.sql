@@ -4,11 +4,11 @@ INSERT INTO user (name, password_hash)
 VALUES (?,?)
 RETURNING *;
 
--- GetUserByUsername :one
+-- name: GetUserByUsername :one
 SELECT * FROM user
 WHERE name = (?);
 
--- GetUserByID :one
+-- name: GetUserByID :one
 SELECT * FROM user
 WHERE id = (?);
 
@@ -48,7 +48,7 @@ ORDER BY created_on DESC limit (?) OFFSET (?);
 
 -- name: GetQuizByID :one
 SELECT * FROM quiz
-WHERE id = (?) AND is_active = 1;;
+WHERE id = (?) AND is_active = 1;
 
 -- name: GetQuizByUserId :many
 SELECT * FROM quiz
@@ -74,7 +74,7 @@ WHERE id = (?);
 -- name: GetQuizEntries :many
 SELECT * FROM entry
 WHERE quiz_id = (?) AND is_active = 1;
-
+/*
 --- SORTER ---
 -- name: GetSorter :one
 SELECT * FROM sorter
@@ -89,4 +89,4 @@ RETURNING *;
 UPDATE sorter 
 SET state = (?)
 WHERE id = (?);
-
+*/

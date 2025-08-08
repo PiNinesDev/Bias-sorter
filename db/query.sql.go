@@ -7,36 +7,99 @@ package db
 
 import (
 	"context"
-	"database/sql"
+	"time"
 )
 
-const deleteEntry = `-- name: DeleteEntry :exec
-DELETE FROM entry 
+const deactivateEntry = `-- name: DeactivateEntry :exec
+UPDATE entry 
+SET is_active = 0
 WHERE id = (?)
 `
 
-func (q *Queries) DeleteEntry(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteEntry, id)
+func (q *Queries) DeactivateEntry(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deactivateEntry, id)
 	return err
 }
 
-const deleteQuiz = `-- name: DeleteQuiz :exec
-DELETE FROM quiz 
+const deactivateQuiz = `-- name: DeactivateQuiz :exec
+UPDATE quiz 
+SET is_active = 0
+WHERE id = (?) and user_id = (?)
+`
+
+type DeactivateQuizParams struct {
+	ID     int64
+	UserID int64
+}
+
+func (q *Queries) DeactivateQuiz(ctx context.Context, arg DeactivateQuizParams) error {
+	_, err := q.db.ExecContext(ctx, deactivateQuiz, arg.ID, arg.UserID)
+	return err
+}
+
+const deactivateUser = `-- name: DeactivateUser :exec
+UPDATE user 
+SET is_active = 0
 WHERE id = (?)
 `
 
-func (q *Queries) DeleteQuiz(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteQuiz, id)
+func (q *Queries) DeactivateUser(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deactivateUser, id)
 	return err
 }
 
-const findAllQuizes = `-- name: FindAllQuizes :many
-SELECT id, name FROM quiz
+const deleteExpiredSessions = `-- name: DeleteExpiredSessions :exec
+DELETE FROM session
+WHERE expiry < (?)
 `
 
-// QUIZ --
-func (q *Queries) FindAllQuizes(ctx context.Context) ([]Quiz, error) {
-	rows, err := q.db.QueryContext(ctx, findAllQuizes)
+func (q *Queries) DeleteExpiredSessions(ctx context.Context, expiry time.Time) error {
+	_, err := q.db.ExecContext(ctx, deleteExpiredSessions, expiry)
+	return err
+}
+
+const deleteSession = `-- name: DeleteSession :exec
+DELETE FROM session
+WHERE token = (?)
+`
+
+func (q *Queries) DeleteSession(ctx context.Context, token string) error {
+	_, err := q.db.ExecContext(ctx, deleteSession, token)
+	return err
+}
+
+const getQuizByID = `-- name: GetQuizByID :one
+SELECT id, name, user_id, created_on, is_active FROM quiz
+WHERE id = (?) AND is_active = 1
+`
+
+func (q *Queries) GetQuizByID(ctx context.Context, id int64) (Quiz, error) {
+	row := q.db.QueryRowContext(ctx, getQuizByID, id)
+	var i Quiz
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.UserID,
+		&i.CreatedOn,
+		&i.IsActive,
+	)
+	return i, err
+}
+
+const getQuizByUserId = `-- name: GetQuizByUserId :many
+SELECT id, name, user_id, created_on, is_active FROM quiz
+WHERE user_id = (?) AND is_active = 1
+ORDER BY created_on DESC limit (?) OFFSET (?)
+`
+
+type GetQuizByUserIdParams struct {
+	UserID  int64
+	Column2 interface{}
+	Column3 interface{}
+}
+
+func (q *Queries) GetQuizByUserId(ctx context.Context, arg GetQuizByUserIdParams) ([]Quiz, error) {
+	rows, err := q.db.QueryContext(ctx, getQuizByUserId, arg.UserID, arg.Column2, arg.Column3)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +107,13 @@ func (q *Queries) FindAllQuizes(ctx context.Context) ([]Quiz, error) {
 	var items []Quiz
 	for rows.Next() {
 		var i Quiz
-		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.UserID,
+			&i.CreatedOn,
+			&i.IsActive,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -58,21 +127,9 @@ func (q *Queries) FindAllQuizes(ctx context.Context) ([]Quiz, error) {
 	return items, nil
 }
 
-const getQuiz = `-- name: GetQuiz :one
-SELECT id, name FROM quiz
-WHERE id = (?)
-`
-
-func (q *Queries) GetQuiz(ctx context.Context, id int64) (Quiz, error) {
-	row := q.db.QueryRowContext(ctx, getQuiz, id)
-	var i Quiz
-	err := row.Scan(&i.ID, &i.Name)
-	return i, err
-}
-
 const getQuizEntries = `-- name: GetQuizEntries :many
-SELECT id, quiz_id, name FROM entry
-WHERE quiz_id = (?)
+SELECT id, quiz_id, name, created_on, is_active FROM entry
+WHERE quiz_id = (?) AND is_active = 1
 `
 
 func (q *Queries) GetQuizEntries(ctx context.Context, quizID int64) ([]Entry, error) {
@@ -84,7 +141,13 @@ func (q *Queries) GetQuizEntries(ctx context.Context, quizID int64) ([]Entry, er
 	var items []Entry
 	for rows.Next() {
 		var i Entry
-		if err := rows.Scan(&i.ID, &i.QuizID, &i.Name); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.QuizID,
+			&i.Name,
+			&i.CreatedOn,
+			&i.IsActive,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -98,19 +161,90 @@ func (q *Queries) GetQuizEntries(ctx context.Context, quizID int64) ([]Entry, er
 	return items, nil
 }
 
-const getSorter = `-- name: GetSorter :one
-SELECT id, type, quiz_id, state FROM sorter
+const getRectentQuizzes = `-- name: GetRectentQuizzes :many
+SELECT id, name, user_id, created_on, is_active FROM quiz
+WHERE is_active = 1
+ORDER BY created_on DESC limit (?) OFFSET (?)
+`
+
+type GetRectentQuizzesParams struct {
+	Column1 interface{}
+	Column2 interface{}
+}
+
+func (q *Queries) GetRectentQuizzes(ctx context.Context, arg GetRectentQuizzesParams) ([]Quiz, error) {
+	rows, err := q.db.QueryContext(ctx, getRectentQuizzes, arg.Column1, arg.Column2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Quiz
+	for rows.Next() {
+		var i Quiz
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.UserID,
+			&i.CreatedOn,
+			&i.IsActive,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getSessionByToken = `-- name: GetSessionByToken :one
+SELECT token, user_id, expiry FROM session
+WHERE token = (?)
+`
+
+func (q *Queries) GetSessionByToken(ctx context.Context, token string) (Session, error) {
+	row := q.db.QueryRowContext(ctx, getSessionByToken, token)
+	var i Session
+	err := row.Scan(&i.Token, &i.UserID, &i.Expiry)
+	return i, err
+}
+
+const getUserByID = `-- name: GetUserByID :one
+SELECT id, name, password_hash, created_on, is_active FROM user
 WHERE id = (?)
 `
 
-func (q *Queries) GetSorter(ctx context.Context, id int64) (Sorter, error) {
-	row := q.db.QueryRowContext(ctx, getSorter, id)
-	var i Sorter
+func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByID, id)
+	var i User
 	err := row.Scan(
 		&i.ID,
-		&i.Type,
-		&i.QuizID,
-		&i.State,
+		&i.Name,
+		&i.PasswordHash,
+		&i.CreatedOn,
+		&i.IsActive,
+	)
+	return i, err
+}
+
+const getUserByUsername = `-- name: GetUserByUsername :one
+SELECT id, name, password_hash, created_on, is_active FROM user
+WHERE name = (?)
+`
+
+func (q *Queries) GetUserByUsername(ctx context.Context, name string) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByUsername, name)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.PasswordHash,
+		&i.CreatedOn,
+		&i.IsActive,
 	)
 	return i, err
 }
@@ -118,7 +252,7 @@ func (q *Queries) GetSorter(ctx context.Context, id int64) (Sorter, error) {
 const newEntry = `-- name: NewEntry :one
 INSERT INTO entry (name, quiz_id)
 VALUES (?, ?)
-RETURNING id, quiz_id, name
+RETURNING id, quiz_id, name, created_on, is_active
 `
 
 type NewEntryParams struct {
@@ -126,63 +260,86 @@ type NewEntryParams struct {
 	QuizID int64
 }
 
-// ENTRY --
+// - ENTRY ---
 func (q *Queries) NewEntry(ctx context.Context, arg NewEntryParams) (Entry, error) {
 	row := q.db.QueryRowContext(ctx, newEntry, arg.Name, arg.QuizID)
 	var i Entry
-	err := row.Scan(&i.ID, &i.QuizID, &i.Name)
-	return i, err
-}
-
-const newQuiz = `-- name: NewQuiz :one
-INSERT INTO quiz (name)
-VALUES (?)
-RETURNING id, name
-`
-
-func (q *Queries) NewQuiz(ctx context.Context, name string) (Quiz, error) {
-	row := q.db.QueryRowContext(ctx, newQuiz, name)
-	var i Quiz
-	err := row.Scan(&i.ID, &i.Name)
-	return i, err
-}
-
-const newSorter = `-- name: NewSorter :one
-INSERT INTO sorter (type, quiz_id, state)
-VALUES (?, ?, ?)
-RETURNING id, type, quiz_id, state
-`
-
-type NewSorterParams struct {
-	Type   int64
-	QuizID int64
-	State  sql.NullString
-}
-
-func (q *Queries) NewSorter(ctx context.Context, arg NewSorterParams) (Sorter, error) {
-	row := q.db.QueryRowContext(ctx, newSorter, arg.Type, arg.QuizID, arg.State)
-	var i Sorter
 	err := row.Scan(
 		&i.ID,
-		&i.Type,
 		&i.QuizID,
-		&i.State,
+		&i.Name,
+		&i.CreatedOn,
+		&i.IsActive,
 	)
 	return i, err
 }
 
-const storeSorterState = `-- name: StoreSorterState :exec
-UPDATE sorter 
-SET state = (?)
-WHERE id = (?)
+const newQuiz = `-- name: NewQuiz :one
+INSERT INTO quiz (name, user_id)
+VALUES (?, ?)
+RETURNING id, name, user_id, created_on, is_active
 `
 
-type StoreSorterStateParams struct {
-	State sql.NullString
-	ID    int64
+type NewQuizParams struct {
+	Name   string
+	UserID int64
 }
 
-func (q *Queries) StoreSorterState(ctx context.Context, arg StoreSorterStateParams) error {
-	_, err := q.db.ExecContext(ctx, storeSorterState, arg.State, arg.ID)
-	return err
+// - QUIZ ---
+func (q *Queries) NewQuiz(ctx context.Context, arg NewQuizParams) (Quiz, error) {
+	row := q.db.QueryRowContext(ctx, newQuiz, arg.Name, arg.UserID)
+	var i Quiz
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.UserID,
+		&i.CreatedOn,
+		&i.IsActive,
+	)
+	return i, err
+}
+
+const newSession = `-- name: NewSession :one
+INSERT INTO session (token, user_id, expiry)
+VALUES (?,?,?)
+RETURNING token, user_id, expiry
+`
+
+type NewSessionParams struct {
+	Token  string
+	UserID int64
+	Expiry time.Time
+}
+
+// - SESSION ---
+func (q *Queries) NewSession(ctx context.Context, arg NewSessionParams) (Session, error) {
+	row := q.db.QueryRowContext(ctx, newSession, arg.Token, arg.UserID, arg.Expiry)
+	var i Session
+	err := row.Scan(&i.Token, &i.UserID, &i.Expiry)
+	return i, err
+}
+
+const newUser = `-- name: NewUser :one
+INSERT INTO user (name, password_hash)
+VALUES (?,?)
+RETURNING id, name, password_hash, created_on, is_active
+`
+
+type NewUserParams struct {
+	Name         string
+	PasswordHash string
+}
+
+// - USER ---
+func (q *Queries) NewUser(ctx context.Context, arg NewUserParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, newUser, arg.Name, arg.PasswordHash)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.PasswordHash,
+		&i.CreatedOn,
+		&i.IsActive,
+	)
+	return i, err
 }

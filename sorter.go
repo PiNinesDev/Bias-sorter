@@ -1,9 +1,6 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-
 	"example.com/bias-sorter/db"
 )
 
@@ -13,6 +10,7 @@ type Sorter interface {
 	GetQuiz() db.Quiz
 }
 
+/*
 type MockSorter struct {
 	Quiz            db.Quiz
 	entries         []db.Entry
@@ -55,3 +53,4 @@ func unserializeMockSorter(str string, s *MockSorter) error {
 	}
 	return nil
 }
+*/

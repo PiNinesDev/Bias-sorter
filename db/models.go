@@ -5,23 +5,35 @@
 package db
 
 import (
-	"database/sql"
+	"time"
 )
 
 type Entry struct {
-	ID     int64
-	QuizID int64
-	Name   string
+	ID        int64
+	QuizID    int64
+	Name      string
+	CreatedOn interface{}
+	IsActive  bool
 }
 
 type Quiz struct {
-	ID   int64
-	Name string
+	ID        int64
+	Name      string
+	UserID    int64
+	CreatedOn interface{}
+	IsActive  bool
 }
 
-type Sorter struct {
-	ID     int64
-	Type   int64
-	QuizID int64
-	State  sql.NullString
+type Session struct {
+	Token  string
+	UserID int64
+	Expiry time.Time
+}
+
+type User struct {
+	ID           int64
+	Name         string
+	PasswordHash string
+	CreatedOn    interface{}
+	IsActive     bool
 }
